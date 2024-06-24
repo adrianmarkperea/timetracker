@@ -5,29 +5,38 @@ from requests.auth import HTTPBasicAuth
 from toolz import groupby, valmap
 
 
-def get_entries(token, start):
+def get_entries(token, start, end):
     start_date = start.set(hour=0, minute=0, second=0, microsecond=0)
+    end_date = end.set(hour=0, minute=0, second=0, microsecond=0)
     entries = requests.get(
-        "https://api.track.toggl.com/api/v8/time_entries",
-        params={"start_date": start_date.isoformat()},
+        "https://api.track.toggl.com/api/v9/me/time_entries",
+        params={"start_date": start_date.isoformat(), "end_date": end_date.isoformat()},
         auth=HTTPBasicAuth(token, "api_token"),
     ).json()
     return entries
 
 
 def get_projects(token, entries):
-    project_ids = {e.get("pid") for e in entries if e.get("pid") is not None}
-    projects_info = {pid: get_project_by_id(pid, token=token) for pid in project_ids}
-    projects = {k: v["name"] for k, v in projects_info.items()}
+    projects = {}
+    for e in entries:
+        pid = e.get("pid")
+        wid = e.get("wid")
+
+        if pid is None or wid is None:
+            continue
+
+        project_info = get_project(pid, wid, token)
+        projects[pid] = project_info["name"]
+
     return projects
 
 
-def get_project_by_id(id, token):
+def get_project(id, wid, token):
     project = requests.get(
-        f"https://api.track.toggl.com/api/v8/projects/{id}",
+        f"https://api.track.toggl.com/api/v9/workspaces/{wid}/projects/{id}",
         auth=HTTPBasicAuth(token, "api_token"),
     )
-    return project.json().get("data")
+    return project.json()
 
 
 def summarize(entries, projects, timezone):
@@ -94,8 +103,9 @@ def main(since, token, timezone, yesterday, week, lastweek):
         start = now.subtract(weeks=1).start_of("week")
     else:
         start = now
-    click.echo(f"Getting entries starting from {start.to_date_string()}")
-    entries = get_entries(token, start)
+    end = now
+    click.echo(f"Getting entries starting from {start.to_date_string()} to {end.to_date_string()}")
+    entries = get_entries(token, start, end)
     projects = get_projects(token, entries)
     summaries = summarize(entries, projects, timezone)
     for date, summary in summaries.items():
