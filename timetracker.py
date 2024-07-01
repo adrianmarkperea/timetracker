@@ -103,8 +103,8 @@ def main(since, token, timezone, yesterday, week, lastweek):
         start = now.subtract(weeks=1).start_of("week")
     else:
         start = now
-    end = now
-    click.echo(f"Getting entries starting from {start.to_date_string()} to {end.to_date_string()}")
+    end = now.add(days=1)
+    click.echo(f"Getting entries starting from {start.to_date_string()} to {end.to_date_string()} [exclusive]")
     entries = get_entries(token, start, end)
     projects = get_projects(token, entries)
     summaries = summarize(entries, projects, timezone)
