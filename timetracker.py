@@ -88,7 +88,7 @@ def format_report(date, summary):
 @click.option("-w", "--week", is_flag=True)
 @click.option("-l", "--lastweek", is_flag=True)
 @click.option("--token", type=str)
-@click.option("--timezone", type=str, default="Asia/Manila")
+@click.option("--timezone", type=str, default="Asia/Singapore")
 def main(since, token, timezone, yesterday, week, lastweek):
     if token is None or token == "":
         raise click.BadOptionUsage("token", "Token variable is needed")
